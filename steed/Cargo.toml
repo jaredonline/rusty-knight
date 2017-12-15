@@ -1,0 +1,6 @@
+[package]
+name = "steed"
+version = "0.1.0"
+authors = ["Jared McFarland <jaredonline@github.com>"]
+
+[dependencies]
