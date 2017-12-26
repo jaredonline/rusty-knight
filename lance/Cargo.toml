@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["Jared McFarland <jaredonline@github.com>"]
 
 [dependencies]
+steed = { path = "../steed" }
+tcod = "0.12"
