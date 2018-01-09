@@ -74,8 +74,7 @@ impl Into<usize> for Position {
             Column::H => 7,
         };
 
-        let i = (row * 8) + col;
-        i
+        (row * 8) + col
     }
 }
 
@@ -102,7 +101,7 @@ impl From<char> for Column {
             'f' => Column::F,
             'g' => Column::G,
             'h' => Column::H,
-            _ => panic!(format!("invalid column {} supplied", c))
+            _ => panic!(format!("invalid column {} supplied", c)),
         }
     }
 }
@@ -133,7 +132,7 @@ impl From<i8> for Column {
             6 => Column::F,
             7 => Column::G,
             8 => Column::H,
-            _ => panic!(format!("invalid column {} supplied", i))
+            _ => panic!(format!("invalid column {} supplied", i)),
         }
     }
 }
@@ -144,11 +143,11 @@ mod tests {
 
     #[test]
     fn string_to_position() {
-        let p : Position = "a1".into();
+        let p: Position = "a1".into();
         assert_eq!(p.column, Column::A);
         assert_eq!(p.row, 1);
 
-        let p : Position = "b2".into();
+        let p: Position = "b2".into();
         assert_eq!(p.column, Column::B);
         assert_eq!(p.row, 2);
     }

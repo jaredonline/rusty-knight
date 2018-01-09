@@ -1,16 +1,9 @@
 use std::default::Default;
 use std::fmt;
-use std::fmt::{
-    Formatter,
-    Debug
-};
-use std::iter::{
-    Enumerate,
-};
+use std::fmt::{Debug, Formatter};
+use std::iter::Enumerate;
 
-use std::slice::{
-    Iter,
-};
+use std::slice::Iter;
 
 use position::Position;
 use movement::Move;
@@ -37,14 +30,14 @@ pub enum Piece {
 impl Piece {
     pub fn color(self) -> Color {
         match self {
-            Piece::WhitePawn |
-            Piece::WhiteRook |
-            Piece::WhiteKnight |
-            Piece::WhiteBishop |
-            Piece::WhiteKing |
-            Piece::WhiteQueen => Color::White,
+            Piece::WhitePawn
+            | Piece::WhiteRook
+            | Piece::WhiteKnight
+            | Piece::WhiteBishop
+            | Piece::WhiteKing
+            | Piece::WhiteQueen => Color::White,
 
-            _ => Color::Black
+            _ => Color::Black,
         }
     }
 }
@@ -56,7 +49,7 @@ struct BoardLayout {
 
 impl BoardLayout {
     fn add_piece(&mut self, piece: Piece, position: Position) {
-        let index : usize = position.into();
+        let index: usize = position.into();
         self.layout[index] = piece;
     }
 }
@@ -65,10 +58,10 @@ impl Debug for BoardLayout {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let _ = write!(f, "[");
         for piece in self.layout.iter() {
-            match piece {
-                &Piece::Empty => {
+            match *piece {
+                Piece::Empty => {
                     let _ = write!(f, " - ");
-                },
+                }
                 _ => {
                     let _ = write!(f, "{:?} ", piece);
                 }
@@ -86,7 +79,7 @@ impl PartialEq for BoardLayout {
             }
         }
 
-        return true;
+        true
     }
 }
 
@@ -102,7 +95,7 @@ pub struct Board {
     history: Vec<Move>,
     white_can_castle: bool,
     black_can_castle: bool,
-    to_move: Color
+    to_move: Color,
 }
 
 impl Board {
@@ -178,8 +171,8 @@ impl Board {
                     Piece::Empty,
                     Piece::Empty,
                     Piece::Empty,
-                ]
-            }
+                ],
+            },
         }
     }
 
@@ -189,23 +182,34 @@ impl Board {
 
     pub fn piece_at<P: Into<Position>>(&self, position: P) -> Piece {
         let position = position.into();
-        let index : usize = position.into();
-        self.layout.layout[index].clone()
+        let index: usize = position.into();
+        self.layout.layout[index]
     }
 
     pub fn add_piece<P: Into<Position>>(&mut self, piece: Piece, position: P) {
-        let position : Position = position.into();
-        let index : usize = position.into();
+        let position: Position = position.into();
 
         self.layout.add_piece(piece, position);
+    }
+
+    pub fn move_piece<P: Into<Position>>(&mut self, start: P, end: P) {
+        let start = start.into();
+        let piece = self.piece_at(start);
+
+        self.add_piece(Piece::Empty, start);
+        self.add_piece(piece, end);
+    }
+
+    pub fn threefold_draw(&self) -> bool {
+        true
     }
 
     pub fn hypothetical_move<P: Into<Position>>(&self, start: P, end: P) -> Board {
         let mut board = self.clone();
         let start = start.into();
         let end = end.into();
-        let end_index : usize = end.into();
-        let start_index : usize = start.into();
+        let end_index: usize = end.into();
+        let start_index: usize = start.into();
 
         let piece = self.piece_at(start);
         board.layout.layout[start_index] = Piece::Empty;
@@ -215,35 +219,66 @@ impl Board {
     }
 
     pub fn in_check(&self, color: Color) -> bool {
-        match self.find_king(color) {
-            Some(position) => {
-                for (i, piece) in self.enumerate_pieces() {
-                    if piece.color() != color {
-                        let i : Position = i.into();
-                        for m in self.moves_for(i) {
-                            if m == position {
-                                return true;
-                            }
+        if let Some(position) = self.find_king(color) {
+            for (i, piece) in self.enumerate_pieces() {
+                if piece.color() != color {
+                    let i: Position = i.into();
+                    for m in self.moves_for(i) {
+                        if m == position {
+                            return true;
                         }
                     }
-
-                    continue;
                 }
-            },
-            _ => {},
+
+                continue;
+            }
         }
 
-        return false;
+        false
+    }
+
+    pub fn stalemate(&self) -> bool {
+        for (i, piece) in self.enumerate_pieces() {
+            if piece.color() == self.to_move {
+                let i: Position = i.into();
+                if self.filtered_moves_for(i).is_empty() {
+                    continue;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    pub fn checkmate(&self, color: Color) -> bool {
+        if !self.in_check(color) {
+            return false;
+        }
+
+        for (i, piece) in self.enumerate_pieces() {
+            if piece.color() == color {
+                let i: Position = i.into();
+                if self.filtered_moves_for(i).is_empty() {
+                    continue;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 
     fn find_king(&self, color: Color) -> Option<Position> {
         for (i, piece) in self.enumerate_pieces() {
             if piece.color() == color {
-                match piece {
-                    &Piece::BlackKing | &Piece::WhiteKing => {
-                        let position : Position = i.into();
+                match *piece {
+                    Piece::BlackKing | Piece::WhiteKing => {
+                        let position: Position = i.into();
                         return Some(position);
-                    },
+                    }
                     _ => continue,
                 }
             }
@@ -255,7 +290,7 @@ impl Board {
 
 impl Default for Board {
     fn default() -> Board {
-        let board : [Piece; 64] = [
+        let board: [Piece; 64] = [
             Piece::BlackRook,
             Piece::BlackKnight,
             Piece::BlackBishop,
@@ -264,7 +299,6 @@ impl Default for Board {
             Piece::BlackBishop,
             Piece::BlackKnight,
             Piece::BlackRook,
-
             Piece::BlackPawn,
             Piece::BlackPawn,
             Piece::BlackPawn,
@@ -273,7 +307,6 @@ impl Default for Board {
             Piece::BlackPawn,
             Piece::BlackPawn,
             Piece::BlackPawn,
-
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
@@ -282,7 +315,6 @@ impl Default for Board {
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
-
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
@@ -291,7 +323,6 @@ impl Default for Board {
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
-
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
@@ -300,7 +331,6 @@ impl Default for Board {
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
-
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
@@ -309,7 +339,6 @@ impl Default for Board {
             Piece::Empty,
             Piece::Empty,
             Piece::Empty,
-
             Piece::WhitePawn,
             Piece::WhitePawn,
             Piece::WhitePawn,
@@ -318,7 +347,6 @@ impl Default for Board {
             Piece::WhitePawn,
             Piece::WhitePawn,
             Piece::WhitePawn,
-
             Piece::WhiteRook,
             Piece::WhiteKnight,
             Piece::WhiteBishop,
@@ -330,9 +358,7 @@ impl Default for Board {
         ];
 
         Board {
-            layout: BoardLayout {
-                layout: board
-            },
+            layout: BoardLayout { layout: board },
             to_move: Color::White,
             history: Vec::new(),
             white_can_castle: true,
@@ -370,7 +396,6 @@ mod tests {
                     BlackBishop,
                     BlackKnight,
                     BlackRook,
-
                     BlackPawn,
                     BlackPawn,
                     BlackPawn,
@@ -379,7 +404,6 @@ mod tests {
                     BlackPawn,
                     BlackPawn,
                     BlackPawn,
-
                     Empty,
                     Empty,
                     Empty,
@@ -388,7 +412,6 @@ mod tests {
                     Empty,
                     Empty,
                     Empty,
-
                     Empty,
                     Empty,
                     Empty,
@@ -397,7 +420,6 @@ mod tests {
                     Empty,
                     Empty,
                     Empty,
-
                     Empty,
                     Empty,
                     Empty,
@@ -406,7 +428,6 @@ mod tests {
                     Empty,
                     Empty,
                     Empty,
-
                     Empty,
                     Empty,
                     Empty,
@@ -415,7 +436,6 @@ mod tests {
                     Empty,
                     Empty,
                     Empty,
-
                     WhitePawn,
                     WhitePawn,
                     WhitePawn,
@@ -424,7 +444,6 @@ mod tests {
                     WhitePawn,
                     WhitePawn,
                     WhitePawn,
-
                     WhiteRook,
                     WhiteKnight,
                     WhiteBishop,
@@ -444,14 +463,14 @@ mod tests {
     fn hypothetical_move() {
         let mut board = Board::empty();
         board.add_piece(Piece::WhitePawn, "a2");
-        
+
         let new_board = board.hypothetical_move("a2", "a3");
         let mut board = Board::empty();
         board.add_piece(Piece::WhitePawn, "a3");
-    
+
         assert_eq!(board, new_board);
     }
-    
+
     #[test]
     fn in_check() {
         let mut board = Board::empty();
@@ -469,5 +488,17 @@ mod tests {
 
         assert!(board.in_check(Color::Black));
         assert!(!board.in_check(Color::White));
+    }
+
+    #[test]
+    fn move_piece() {
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackKing, "a8");
+        assert_eq!(board.piece_at("a8"), Piece::BlackKing);
+        assert_eq!(board.piece_at("a7"), Piece::Empty);
+
+        board.move_piece("a8", "a7");
+        assert_eq!(board.piece_at("a7"), Piece::BlackKing);
+        assert_eq!(board.piece_at("a8"), Piece::Empty);
     }
 }

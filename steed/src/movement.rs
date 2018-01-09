@@ -1,11 +1,5 @@
-use board::{
-    Board,
-    Piece,
-    Color,
-};
-use position::{
-    Position,
-};
+use board::{Board, Color, Piece};
+use position::Position;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Move {
@@ -36,9 +30,8 @@ impl Board {
             Piece::BlackRook | Piece::WhiteRook => self.rook_moves(position),
             Piece::BlackBishop | Piece::WhiteBishop => self.bishop_moves(position),
             Piece::BlackKnight | Piece::WhiteKnight => self.knight_moves(position),
-            
-            Piece::Empty => Vec::new(),
 
+            Piece::Empty => Vec::new(),
             // _ => unreachable!(),
         }
     }
@@ -46,15 +39,19 @@ impl Board {
     pub fn position_in_bounds(column: i8, row: i8) -> Result<Position, &'static str> {
         if column > 0 && column <= 8 && row > 0 && row <= 8 {
             return Ok(Position::new(column.into(), row as u8));
-        } 
+        }
 
         Err("Invalid position")
     }
 
-    pub fn offset_in_bounds<P: Into<Position>>(position: P, column_offset: i8, row_offset: i8) -> Result<Position, &'static str> {
+    pub fn offset_in_bounds<P: Into<Position>>(
+        position: P,
+        column_offset: i8,
+        row_offset: i8,
+    ) -> Result<Position, &'static str> {
         let position = position.into();
         let row = (position.row as i8) + row_offset;
-        let c : i8 = position.column.into();
+        let c: i8 = position.column.into();
         let column = c + column_offset;
 
         Board::position_in_bounds(column, row)
@@ -73,17 +70,17 @@ impl Board {
                 if position.row == 2 {
                     moves.push(Position::new(position.column, 4));
                 }
-            },
+            }
 
             Piece::BlackPawn => {
                 if position.row > 1 {
                     moves.push(Position::new(position.column, position.row - 1));
                 }
 
-                if position.row == 7.into() {
+                if position.row == 7 {
                     moves.push(Position::new(position.column, 5));
                 }
-            },
+            }
 
             _ => unreachable!(),
         }
@@ -91,19 +88,18 @@ impl Board {
         moves
     }
 
-    fn king_moves<P: Into<Position>>(&self, position: P, piece: Piece) -> Vec<Position> {
+    fn king_moves<P: Into<Position>>(&self, position: P, _: Piece) -> Vec<Position> {
         let position = position.into();
         let mut moves = Vec::new();
 
-        for i in -1 .. 2 {
-            for j in -1 .. 2 {
+        for i in -1..2 {
+            for j in -1..2 {
                 if i == 0 && j == 0 {
                     continue;
                 }
 
-                match Board::offset_in_bounds(position, i, j) {
-                    Ok(position) => moves.push(position),
-                    _ => {}
+                if let Ok(position) = Board::offset_in_bounds(position, i, j) {
+                    moves.push(position);
                 }
             }
         }
@@ -111,7 +107,12 @@ impl Board {
         moves
     }
 
-    fn filter_in_check(&self, start: Position, positions: Vec<Position>, color: Color) -> Vec<Position> {
+    fn filter_in_check(
+        &self,
+        start: Position,
+        positions: Vec<Position>,
+        color: Color,
+    ) -> Vec<Position> {
         let mut moves = Vec::new();
 
         for position in positions {
@@ -124,7 +125,12 @@ impl Board {
         moves
     }
 
-    pub fn filter_occupied_space(&self, position: Position, positions: Vec<Position>, color: Color) -> Vec<Position> {
+    pub fn filter_occupied_space(
+        &self,
+        _: Position,
+        positions: Vec<Position>,
+        color: Color,
+    ) -> Vec<Position> {
         let mut moves = Vec::new();
 
         for position in positions {
@@ -132,136 +138,172 @@ impl Board {
             match piece {
                 Piece::Empty => {
                     moves.push(position);
-                },
+                }
                 _ => {
                     if piece.color() != color {
                         moves.push(position);
-                    }
-                },
-            }
-        }
-
-        moves
-    }
-
-    fn under_attack<P: Into<Position>>(&self, position: P, color: Color) -> bool {
-        let position = position.into();
-
-        for (i, piece) in self.enumerate_pieces() {
-            let i : Position = i.into();
-            match piece {
-                &Piece::Empty => { continue; },
-                _ => {}
-            }
-
-            if piece.color() != color {
-                for m in self.moves_for(i) {
-                    if m == position {
-                        return true;
                     }
                 }
             }
         }
 
-        false
+        moves
     }
 
     fn queen_moves<P: Into<Position>>(&self, position: P) -> Vec<Position> {
         let position = position.into();
         let mut moves = Vec::new();
 
-        for offset in Board::diagonal_offsets() {
-            match Board::offset_in_bounds(position, offset.0, offset.1) {
-                Ok(position) => moves.push(position),
-                _ => {}
-            }
+        for position in self.diagonal_moves(position) {
+            moves.push(position);
         }
 
-        for offset in Board::column_offsets() {
-            match Board::offset_in_bounds(position, offset.0, offset.1) {
-                Ok(position) => moves.push(position),
-                _ => {}
-            }
+        for position in self.columnar_moves(position) {
+            moves.push(position);
         }
 
         moves
     }
 
     fn rook_moves<P: Into<Position>>(&self, position: P) -> Vec<Position> {
-        let position = position.into();
-        let mut moves = Vec::new();
-
-        for offset in Board::column_offsets() {
-            match Board::offset_in_bounds(position, offset.0, offset.1) {
-                Ok(position) => moves.push(position),
-                _ => {}
-            }
-        }
-
-        moves
+        self.columnar_moves(position)
     }
 
     fn bishop_moves<P: Into<Position>>(&self, position: P) -> Vec<Position> {
-        let position = position.into();
-        let mut moves = Vec::new();
-
-        for offset in Board::diagonal_offsets() {
-            match Board::offset_in_bounds(position, offset.0, offset.1) {
-                Ok(position) => moves.push(position),
-                _ => {}
-            }
-        }
-
-        moves
+        self.diagonal_moves(position)
     }
 
     fn knight_moves<P: Into<Position>>(&self, position: P) -> Vec<Position> {
         let position = position.into();
         let mut moves = Vec::new();
 
-        for offset in [(2, 1), (1, 2), (-2, 1), (-1, 2), (2, -1), (1, -2), (-2, -1), (-1, -2)].iter() {
-            match Board::offset_in_bounds(position, offset.0, offset.1) {
-                Ok(position) => moves.push(position),
-                _ => {}
+        for offset in &[
+            (2, 1),
+            (1, 2),
+            (-2, 1),
+            (-1, 2),
+            (2, -1),
+            (1, -2),
+            (-2, -1),
+            (-1, -2),
+        ] {
+            if let Ok(position) = Board::offset_in_bounds(position, offset.0, offset.1) {
+                moves.push(position);
             }
         }
 
         moves
     }
 
-    fn diagonal_offsets() -> Vec<(i8, i8)> {
-        let mut offsets = Vec::new();
+    fn projection_moves<P: Into<Position>>(
+        &self,
+        position: P,
+        projection: Vec<(i8, i8)>,
+    ) -> Vec<Position> {
+        let position = position.into();
+        let mut moves = Vec::new();
+        let piece_color = self.piece_at(position).color();
 
-        for i in 1 .. 9 {
-            // diaganols
-            offsets.push((i, i));
-            offsets.push((i * -1, i));
-            offsets.push((i, i * -1));
-            offsets.push((i * -1, i * -1));
+        for offset in projection {
+            match Board::offset_in_bounds(position, offset.0, offset.1) {
+                Ok(position) => {
+                    let piece = self.piece_at(position);
+                    let color = piece.color();
+
+                    match piece {
+                        Piece::Empty => moves.push(position),
+                        _ => {
+                            if color != piece_color {
+                                moves.push(position);
+                            }
+
+                            break;
+                        }
+                    }
+                }
+                _ => break,
+            }
         }
 
-        offsets
+        moves
     }
 
-    fn column_offsets() -> Vec<(i8, i8)> {
-        let mut offsets = Vec::new();
+    fn diagonal_moves<P: Into<Position>>(&self, position: P) -> Vec<Position> {
+        let mut moves = Vec::new();
+        let position = position.into();
 
-        for i in 1 .. 9 {
-            // rows + columns
-            offsets.push((i, 0));
-            offsets.push((i * -1, 0));
-            offsets.push((0, i));
-            offsets.push((0, i * -1));
+        for projection in Board::diagonal_offsets() {
+            for position in self.projection_moves(position, projection) {
+                moves.push(position);
+            }
         }
 
-        offsets
+        moves
+    }
+
+    fn columnar_moves<P: Into<Position>>(&self, position: P) -> Vec<Position> {
+        let mut moves = Vec::new();
+        let position = position.into();
+
+        for projection in Board::column_offsets() {
+            for position in self.projection_moves(position, projection) {
+                moves.push(position);
+            }
+        }
+
+        moves
+    }
+
+    fn diagonal_offsets() -> Vec<Vec<(i8, i8)>> {
+        let mut projections = Vec::new();
+
+        let mut first = Vec::new();
+        let mut second = Vec::new();
+        let mut third = Vec::new();
+        let mut fourth = Vec::new();
+        for i in 1..9 {
+            // diaganols
+            first.push((i, i));
+            second.push((-i, i));
+            third.push((i, -i));
+            fourth.push((-i, -i));
+        }
+        projections.push(first);
+        projections.push(second);
+        projections.push(third);
+        projections.push(fourth);
+
+        projections
+    }
+
+    fn column_offsets() -> Vec<Vec<(i8, i8)>> {
+        let mut projections = Vec::new();
+
+        let mut first = Vec::new();
+        let mut second = Vec::new();
+        let mut third = Vec::new();
+        let mut fourth = Vec::new();
+
+        for i in 1..9 {
+            // rows + columns
+            first.push((i, 0));
+            second.push((-i, 0));
+            third.push((0, i));
+            fourth.push((0, -i));
+        }
+
+        projections.push(first);
+        projections.push(second);
+        projections.push(third);
+        projections.push(fourth);
+
+        projections
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use board::Board;
-    use board::Piece;
+    use board::{Board, Color, Piece};
     use position::Position;
 
     macro_rules! assert_movement {
@@ -303,7 +345,7 @@ mod tests {
             assert_eq!(position_moves, moves);
         }
     }
-    
+
     macro_rules! assert_no_movement {
         ($piece:expr, $position:expr) =>  {
             let mut board = Board::empty();
@@ -341,13 +383,54 @@ mod tests {
 
     #[test]
     fn king_movement() {
-        assert_movement!(Piece::WhiteKing, "b4", "a3", "a4", "a5", "b3", "b5", "c3", "c4", "c5");
+        assert_movement!(
+            Piece::WhiteKing,
+            "b4",
+            "a3",
+            "a4",
+            "a5",
+            "b3",
+            "b5",
+            "c3",
+            "c4",
+            "c5"
+        );
         assert_movement!(Piece::BlackKing, "a1", "a2", "b1", "b2");
     }
 
     #[test]
     fn queen_movement() {
-        assert_movement!(Piece::BlackQueen, "d4", "a1", "a4", "a7", "b2", "b4", "b6", "c3", "c4", "c5", "d1", "d2", "d3", "d5", "d6", "d7", "d8", "e3", "e4", "e5", "f2", "f4", "f6", "g1", "g4", "g7", "h4", "h8");
+        assert_movement!(
+            Piece::BlackQueen,
+            "d4",
+            "a1",
+            "a4",
+            "a7",
+            "b2",
+            "b4",
+            "b6",
+            "c3",
+            "c4",
+            "c5",
+            "d1",
+            "d2",
+            "d3",
+            "d5",
+            "d6",
+            "d7",
+            "d8",
+            "e3",
+            "e4",
+            "e5",
+            "f2",
+            "f4",
+            "f6",
+            "g1",
+            "g4",
+            "g7",
+            "h4",
+            "h8"
+        );
     }
 
     #[test]
@@ -357,18 +440,62 @@ mod tests {
 
     #[test]
     fn rook_movement() {
-        assert_movement!(Piece::BlackRook, "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "b1", "c1", "d1", "e1", "f1", "g1", "h1");
+        assert_movement!(
+            Piece::BlackRook,
+            "a1",
+            "a2",
+            "a3",
+            "a4",
+            "a5",
+            "a6",
+            "a7",
+            "a8",
+            "b1",
+            "c1",
+            "d1",
+            "e1",
+            "f1",
+            "g1",
+            "h1"
+        );
     }
 
     #[test]
     fn knight_movement() {
         assert_movement!(Piece::BlackKnight, "a1", "b3", "c2");
-        assert_movement!(Piece::WhiteKnight, "d4", "e6", "f5", "f3", "e2", "c2", "b3", "b5", "c6");
+        assert_movement!(
+            Piece::WhiteKnight,
+            "d4",
+            "e6",
+            "f5",
+            "f3",
+            "e2",
+            "c2",
+            "b3",
+            "b5",
+            "c6"
+        );
     }
 
     #[test]
     fn bishop_movement() {
-        assert_movement!(Piece::BlackBishop, "d4", "a1", "a7", "b2", "b6", "c3", "c5", "e3", "e5", "f2", "f6", "g1", "g7", "h8");
+        assert_movement!(
+            Piece::BlackBishop,
+            "d4",
+            "a1",
+            "a7",
+            "b2",
+            "b6",
+            "c3",
+            "c5",
+            "e3",
+            "e5",
+            "f2",
+            "f6",
+            "g1",
+            "g7",
+            "h8"
+        );
     }
 
     #[test]
@@ -384,8 +511,7 @@ mod tests {
     #[test]
     fn blank_square() {
         let board = Board::empty();
-        let moves = [
-        ].to_vec();
+        let moves = [].to_vec();
         assert_eq!(board.filtered_moves_for("a2"), moves);
     }
 
@@ -415,7 +541,83 @@ mod tests {
 
     #[test]
     fn checkmate() {
-        assert!(false);
+        let mut board = Board::empty();
+        board.add_piece(Piece::WhiteKing, "a1");
+        board.add_piece(Piece::BlackKing, "b2");
+        board.add_piece(Piece::BlackRook, "b8");
+
+        assert!(board.in_check(Color::White));
+        assert_board_no_movement!(board, "a1");
+        assert!(board.checkmate(Color::White));
+
+        let mut board = Board::empty();
+        board.add_piece(Piece::WhiteKing, "a1");
+        board.add_piece(Piece::BlackKing, "b2");
+
+        assert!(board.in_check(Color::White));
+        assert_board_movement!(board, "a1", "b2");
+        assert!(!board.checkmate(Color::White));
+    }
+
+    #[test]
+    fn stalemate() {
+        let mut board = Board::empty();
+        board.add_piece(Piece::WhiteKing, "a1");
+        board.add_piece(Piece::BlackRook, "b8");
+        board.add_piece(Piece::BlackRook, "h2");
+
+        assert!(!board.in_check(Color::White));
+        assert_board_no_movement!(board, "a1");
+        assert!(board.stalemate());
+
+        let mut board = Board::empty();
+        board.add_piece(Piece::WhiteKing, "a1");
+        board.add_piece(Piece::BlackKing, "b2");
+
+        assert!(board.in_check(Color::White));
+        assert_board_movement!(board, "a1", "b2");
+        assert!(!board.stalemate());
+    }
+
+    #[test]
+    fn pieces_block_movement() {
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackRook, "a8");
+        board.add_piece(Piece::BlackPawn, "a7");
+        board.add_piece(Piece::BlackKnight, "b8");
+
+        assert_board_no_movement!(board, "a8");
+
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackRook, "a8");
+        board.add_piece(Piece::WhitePawn, "a7");
+        board.add_piece(Piece::BlackBishop, "b8");
+
+        assert_board_movement!(board, "a8", "a7");
+
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackQueen, "d8");
+        board.add_piece(Piece::BlackBishop, "c8");
+        board.add_piece(Piece::BlackBishop, "e8");
+        board.add_piece(Piece::WhiteBishop, "d7");
+
+        assert_board_movement!(board, "d8", "d7", "c7", "b6", "a5", "e7", "f6", "g5", "h4");
+
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackQueen, "d8");
+        board.add_piece(Piece::BlackBishop, "c8");
+        board.add_piece(Piece::BlackBishop, "e8");
+        board.add_piece(Piece::WhiteBishop, "e7");
+        board.add_piece(Piece::BlackPawn, "c7");
+
+        assert_board_movement!(board, "d8", "d7", "d6", "d5", "d4", "d3", "d2", "d1", "e7");
+
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackBishop, "c8");
+        board.add_piece(Piece::BlackPawn, "b7");
+        board.add_piece(Piece::WhiteBishop, "d7");
+
+        assert_board_movement!(board, "c8", "d7");
     }
 
     #[test]
