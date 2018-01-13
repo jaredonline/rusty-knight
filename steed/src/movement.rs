@@ -378,7 +378,16 @@ mod tests {
 
     #[test]
     fn black_en_passant() {
-        assert!(false);
+        let mut board = Board::empty();
+        board.add_piece(Piece::BlackPawn, "a5");
+        board.add_piece(Piece::BlackPawn, "b4");
+        board.add_piece(Piece::WhitePawn, "a2");
+        board.add_piece(Piece::WhitePawn, "b2");
+
+        board.move_piece("a2", "a4");
+        assert_eq!(board.to_move, Color::Black);
+
+        assert_board_movement!(board, "b4", "b3", "a3");
     }
 
     #[test]

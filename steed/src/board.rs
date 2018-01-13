@@ -95,7 +95,7 @@ pub struct Board {
     history: Vec<Move>,
     white_can_castle: bool,
     black_can_castle: bool,
-    to_move: Color,
+    pub to_move: Color,
 }
 
 impl Board {
@@ -198,6 +198,16 @@ impl Board {
 
         self.add_piece(Piece::Empty, start);
         self.add_piece(piece, end);
+        self.alternate_to_move();
+        //self.record_move(piece, start, end);
+    }
+
+    fn alternate_to_move(&mut self) {
+        if self.to_move == Color::Black {
+            self.to_move = Color::White;
+        } else {
+            self.to_move = Color::Black;
+        }
     }
 
     pub fn threefold_draw(&self) -> bool {
@@ -500,5 +510,23 @@ mod tests {
         board.move_piece("a8", "a7");
         assert_eq!(board.piece_at("a7"), Piece::BlackKing);
         assert_eq!(board.piece_at("a8"), Piece::Empty);
+
+        // TODO: add a test that makes sure invalid moves aren't allowed
+        assert!(false, "need to add a test to make sure invalid moves aren't allowed");
+    }
+
+    #[test]
+    fn three_fold_repitition_draw() {
+        assert!(false);
+    }
+
+    #[test]
+    fn recording_the_game() {
+        let mut board = Board::empty();
+        board.add_piece(Piece::WhitePawn, "a2");
+        board.move_piece("a2", "a3");
+        assert_eq!(board.history.len(), 1);
+
+        assert!(false);
     }
 }
